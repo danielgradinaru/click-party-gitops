@@ -28,7 +28,7 @@ spec:
       containers:
         - name: backend-app
           # CI va înlocui __SHA__ cu tag-ul commitului
-          image: ghcr.io/danielgradinaru/click-party-backend:__SHA__
+          image: ghcr.io/danielgradinaru/click-party-backend:0c939ea5f53eb0aca778aab6cdb51709d1f894e1
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
