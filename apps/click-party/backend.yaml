@@ -21,10 +21,6 @@ spec:
       labels:
         app: backend
     spec:
-      # Dacă imaginea GHCR e privată, păstrează acest secret.
-      # Dacă o faci Public, poți elimina blocul imagePullSecrets.
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: backend-app
           # CI va înlocui __SHA__ cu tag-ul commitului
