@@ -4,8 +4,8 @@ metadata:
   name: backend-secret
 type: Opaque
 data:
-  SPRING_DATASOURCE_USERNAME: dGVzdFVzZXI=
-  SPRING_DATASOURCE_PASSWORD: VGVzdFBhc3M=
+  SPRING_DATASOURCE_USERNAME: dGVzdFVzZXI=   # base64("testUser")
+  SPRING_DATASOURCE_PASSWORD: VGVzdFBhc3M=   # base64("TestPass")
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -13,34 +13,63 @@ metadata:
   name: backend-deployment
 spec:
   replicas: 1
-  selector: { matchLabels: { app: backend } }
+  selector:
+    matchLabels:
+      app: backend
   template:
-    metadata: { labels: { app: backend } }
+    metadata:
+      labels:
+        app: backend
     spec:
-      # dacă imaginea GHCR devine Public, poți elimina imagePullSecrets
       imagePullSecrets:
-        - name: ghcr-secret
+        - name: ghcr-secret   # secretul de pull pt GHCR (varianta B)
       containers:
         - name: backend-app
-          image: ghcr.io/danielgradinaru/click-party-backend:latest
-          ports: [{ containerPort: 8080 }]
+          image: ghcr.io/danielgradinaru/click-party-backend:latest   # CI îl va înlocui cu :<SHA>
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
           env:
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://postgres-service:5432/db_test
             - name: SPRING_DATASOURCE_USERNAME
-              valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_USERNAME } }
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SPRING_DATASOURCE_USERNAME
             - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_PASSWORD } }
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SPRING_DATASOURCE_PASSWORD
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
               value: update
+          readinessProbe:        # probe generice (TCP) ca să nu depindem de Actuator
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend-service
 spec:
-  selector: { app: backend }
+  selector:
+    app: backend
   ports:
-    - { port: 8080, targetPort: 8080 }
+    - port: 8080
+      targetPort: 8080
   type: NodePort
-
