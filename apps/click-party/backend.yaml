@@ -22,7 +22,7 @@ spec:
         - name: ghcr-secret
       containers:
         - name: backend-app
-          image: ghcr.io/<USER_TAU>/click-party-backend:latest
+          image: ghcr.io/danielgradinaru/click-party-backend:latest
           ports: [{ containerPort: 8080 }]
           env:
             - name: SPRING_DATASOURCE_URL
