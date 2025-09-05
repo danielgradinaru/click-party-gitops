@@ -21,11 +21,14 @@ spec:
       labels:
         app: backend
     spec:
+      # Dacă imaginea GHCR e privată, păstrează acest secret.
+      # Dacă o faci Public, poți elimina blocul imagePullSecrets.
       imagePullSecrets:
-        - name: ghcr-secret   # secretul de pull pt GHCR (varianta B)
+        - name: ghcr-secret
       containers:
         - name: backend-app
-          image: ghcr.io/danielgradinaru/click-party-backend:latest   # CI îl va înlocui cu :<SHA>
+          # CI va înlocui __SHA__ cu tag-ul commitului
+          image: ghcr.io/danielgradinaru/click-party-backend:__SHA__
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -44,14 +47,12 @@ spec:
                   key: SPRING_DATASOURCE_PASSWORD
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
               value: update
-          readinessProbe:        # probe generice (TCP) ca să nu depindem de Actuator
-            tcpSocket:
-              port: 8080
+          readinessProbe:
+            tcpSocket: { port: 8080 }
             initialDelaySeconds: 20
             periodSeconds: 10
           livenessProbe:
-            tcpSocket:
-              port: 8080
+            tcpSocket: { port: 8080 }
             initialDelaySeconds: 60
             periodSeconds: 20
           resources:
