@@ -1,1 +1,46 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secret
+type: Opaque
+data:
+  SPRING_DATASOURCE_USERNAME: dGVzdFVzZXI=
+  SPRING_DATASOURCE_PASSWORD: VGVzdFBhc3M=
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: backend } }
+  template:
+    metadata: { labels: { app: backend } }
+    spec:
+      # dacă imaginea GHCR devine Public, poți elimina imagePullSecrets
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: backend-app
+          image: ghcr.io/<USER_TAU>/click-party-backend:latest
+          ports: [{ containerPort: 8080 }]
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-service:5432/db_test
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_USERNAME } }
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_PASSWORD } }
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector: { app: backend }
+  ports:
+    - { port: 8080, targetPort: 8080 }
+  type: NodePort
 
