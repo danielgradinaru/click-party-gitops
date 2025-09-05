@@ -21,6 +21,8 @@ spec:
       labels:
         app: backend
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: backend-app
           # CI va înlocui __SHA__ cu tag-ul commitului
