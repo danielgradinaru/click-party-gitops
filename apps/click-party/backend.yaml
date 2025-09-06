@@ -45,7 +45,7 @@ containers:
       - containerPort: 8082
     env:
       - name: SERVER_PORT                   # <— forțăm Spring să pornească pe 8080
-        value: "8080"
+        value: "8082"
       - name: SPRING_DATASOURCE_URL
         value: jdbc:postgresql://postgres-service:5432/db_test
       - name: SPRING_DATASOURCE_USERNAME
