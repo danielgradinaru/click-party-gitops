@@ -21,7 +21,7 @@ spec:
       labels:
         app: backend
     spec:
-      # dacă imaginea din GHCR e Public, poți elimina acest bloc
+      # dacă imaginea din GHCR devine Public, poți elimina acest bloc
       imagePullSecrets:
         - name: ghcr-secret
       # așteaptă ca Postgres să fie disponibil înainte să pornească Spring
@@ -60,16 +60,16 @@ spec:
             # forțăm dialectul și driverul (Hibernate 6 / Spring Boot 3)
             - name: SPRING_JPA_DATABASE_PLATFORM
               value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+              value: org.hibernate.dialect.PostgreSQLDialect
             - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
               value: org.postgresql.Driver
           readinessProbe:
-            tcpSocket:
-              port: 8080
+            tcpSocket: { port: 8080 }
             initialDelaySeconds: 20
             periodSeconds: 10
           livenessProbe:
-            tcpSocket:
-              port: 8080
+            tcpSocket: { port: 8080 }
             initialDelaySeconds: 60
             periodSeconds: 20
           resources:
