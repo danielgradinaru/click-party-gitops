@@ -11,83 +11,87 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend-deployment
+  labels:
+    app: backend
 spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
-    matchLabels:a
-      app: backend
+    matchLabels:
+      app: backend               # ← FIX: selector corect (ai avut 'matchLabels:a')
   template:
     metadata:
       labels:
         app: backend
     spec:
-      # dacă imaginea din GHCR devine Public, poți elimina acest bloc
+      # Dacă imaginea GHCR e publică, poți elimina acest bloc
       imagePullSecrets:
         - name: ghcr-secret
-      # așteaptă ca Postgres să fie disponibil înainte să pornească Spring
+      # Așteaptă Postgres înainte să pornească Spring
       initContainers:
         - name: wait-for-postgres
           image: postgres:15
-          command:
-            - sh
-            - -c
-            - |
-              until pg_isready -h postgres-service -p 5432; do
-                echo "waiting for db";
-                sleep 2;
-              done
-containers:
-  - name: backend-app
-    image: ghcr.io/danielgradinaru/click-party-backend:0c939ea5f53eb0aca778aab6cdb51709d1f894e1
-    imagePullPolicy: Always
-    ports:
-      - containerPort: 8082
-    env:
-      - name: SERVER_PORT                   # <— forțăm Spring să pornească pe 8080
-        value: "8082"
-      - name: SPRING_DATASOURCE_URL
-        value: jdbc:postgresql://postgres-service:5432/db_test
-      - name: SPRING_DATASOURCE_USERNAME
-        valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_USERNAME } }
-      - name: SPRING_DATASOURCE_PASSWORD
-        valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_PASSWORD } }
-      - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
-      - name: SPRING_JPA_DATABASE_PLATFORM
-        value: org.hibernate.dialect.PostgreSQLDialect
-      - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
-        value: org.hibernate.dialect.PostgreSQLDialect
-      - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
-        value: org.postgresql.Driver
-
-    # dă timp aplicației să pornească, fără să fie omorâtă
-    startupProbe:
-      tcpSocket: { port: 8082 }
-      periodSeconds: 3
-      failureThreshold: 40       # ~120s timp de pornire permis
-
-    readinessProbe:
-      tcpSocket: { port: 8082 }
-      initialDelaySeconds: 10
-      periodSeconds: 5
-      failureThreshold: 12       # ~60s permis până devine ready
-
-    livenessProbe:
-      tcpSocket: { port: 8082 }
-      initialDelaySeconds: 90    # nu omorî procesul înainte de ~90s
-      periodSeconds: 10
-      failureThreshold: 5
-
+          command: ['sh','-c','until pg_isready -h postgres-service -p 5432; do echo waiting for db; sleep 2; done']
+      containers:
+        - name: backend-app
+          image: ghcr.io/danielgradinaru/click-party-backend:0c939ea5f53eb0aca778aab6cdb51709d1f894e1
+          # dacă folosești CI care scrie tag-ul automat, înlocuiește linia de mai sus cu:
+          # image: ghcr.io/danielgradinaru/click-party-backend:__SHA__
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082         # Tomcat pornește pe 8082
+          env:
+            - name: SERVER_PORT
+              value: "8082"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-service:5432/db_test
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: SPRING_DATASOURCE_PASSWORD
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+              value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: org.postgresql.Driver
+          # Probe pe portul corect (8082)
+          startupProbe:
+            tcpSocket: { port: 8082 }
+            periodSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            tcpSocket: { port: 8082 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: { port: 8082 }
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend-service
+  labels:
+    app: backend
 spec:
   selector:
     app: backend
   ports:
-    - port: 8082
-      targetPort: 8082
+    - port: 8080          # portul extern în cluster (ce vei accesa)
+      targetPort: 8082    # portul din container (Tomcat)
   type: NodePort
