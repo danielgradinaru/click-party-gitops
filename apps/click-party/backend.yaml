@@ -15,7 +15,7 @@ spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
-    matchLabels:
+    matchLabels:a
       app: backend
   template:
     metadata:
@@ -88,6 +88,6 @@ spec:
   selector:
     app: backend
   ports:
-    - port: 8080
+    - port: 8082
       targetPort: 8082
   type: NodePort
