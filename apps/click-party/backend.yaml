@@ -37,49 +37,48 @@ spec:
                 echo "waiting for db";
                 sleep 2;
               done
-      containers:
-        - name: backend-app
-          image: ghcr.io/danielgradinaru/click-party-backend:0c939ea5f53eb0aca778aab6cdb51709d1f894e1   # CI înlocuiește :__SHA__ cu :<commit SHA>
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 8080
-          env:
-            - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://postgres-service:5432/db_test
-            - name: SPRING_DATASOURCE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: backend-secret
-                  key: SPRING_DATASOURCE_USERNAME
-            - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: backend-secret
-                  key: SPRING_DATASOURCE_PASSWORD
-            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-              value: update
-            # forțăm dialectul și driverul (Hibernate 6 / Spring Boot 3)
-            - name: SPRING_JPA_DATABASE_PLATFORM
-              value: org.hibernate.dialect.PostgreSQLDialect
-            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
-              value: org.hibernate.dialect.PostgreSQLDialect
-            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
-              value: org.postgresql.Driver
-          readinessProbe:
-            tcpSocket: { port: 8080 }
-            initialDelaySeconds: 20
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket: { port: 8080 }
-            initialDelaySeconds: 60
-            periodSeconds: 20
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "256Mi"
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
+containers:
+  - name: backend-app
+    image: ghcr.io/danielgradinaru/click-party-backend:__SHA__
+    imagePullPolicy: Always
+    ports:
+      - containerPort: 8080
+    env:
+      - name: SERVER_PORT                   # <— forțăm Spring să pornească pe 8080
+        value: "8080"
+      - name: SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://postgres-service:5432/db_test
+      - name: SPRING_DATASOURCE_USERNAME
+        valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_USERNAME } }
+      - name: SPRING_DATASOURCE_PASSWORD
+        valueFrom: { secretKeyRef: { name: backend-secret, key: SPRING_DATASOURCE_PASSWORD } }
+      - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - name: SPRING_JPA_DATABASE_PLATFORM
+        value: org.hibernate.dialect.PostgreSQLDialect
+      - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+        value: org.hibernate.dialect.PostgreSQLDialect
+      - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
+
+    # dă timp aplicației să pornească, fără să fie omorâtă
+    startupProbe:
+      tcpSocket: { port: 8080 }
+      periodSeconds: 3
+      failureThreshold: 40       # ~120s timp de pornire permis
+
+    readinessProbe:
+      tcpSocket: { port: 8080 }
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      failureThreshold: 12       # ~60s permis până devine ready
+
+    livenessProbe:
+      tcpSocket: { port: 8080 }
+      initialDelaySeconds: 90    # nu omorî procesul înainte de ~90s
+      periodSeconds: 10
+      failureThreshold: 5
+
 ---
 apiVersion: v1
 kind: Service
