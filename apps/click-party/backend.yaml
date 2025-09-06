@@ -42,7 +42,7 @@ containers:
     image: ghcr.io/danielgradinaru/click-party-backend:__SHA__
     imagePullPolicy: Always
     ports:
-      - containerPort: 8080
+      - containerPort: 8082
     env:
       - name: SERVER_PORT                   # <— forțăm Spring să pornească pe 8080
         value: "8080"
@@ -63,18 +63,18 @@ containers:
 
     # dă timp aplicației să pornească, fără să fie omorâtă
     startupProbe:
-      tcpSocket: { port: 8080 }
+      tcpSocket: { port: 8082 }
       periodSeconds: 3
       failureThreshold: 40       # ~120s timp de pornire permis
 
     readinessProbe:
-      tcpSocket: { port: 8080 }
+      tcpSocket: { port: 8082 }
       initialDelaySeconds: 10
       periodSeconds: 5
       failureThreshold: 12       # ~60s permis până devine ready
 
     livenessProbe:
-      tcpSocket: { port: 8080 }
+      tcpSocket: { port: 8082 }
       initialDelaySeconds: 90    # nu omorî procesul înainte de ~90s
       periodSeconds: 10
       failureThreshold: 5
@@ -89,5 +89,5 @@ spec:
     app: backend
   ports:
     - port: 8080
-      targetPort: 8080
+      targetPort: 8082
   type: NodePort
